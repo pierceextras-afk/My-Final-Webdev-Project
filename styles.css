@@ -1,0 +1,73 @@
+/* 1. Body Styling - Custom background color, font family, and font color */
+body {
+    background-color: #f0f7f4; /* Soft, clean river-green/gray background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #2c3e50; /* Deep slate color for high contrast readability */
+    margin: 0;
+    padding: 0;
+}
+
+/* 2. Nav Container Div Styling (Positioning Block 1) */
+.nav-container {
+    background-color: #1a3a3a; /* Dark forest/water green */
+    padding: 15px;
+    text-align: center;
+}
+
+.nav-link {
+    color: #ffffff;
+    text-decoration: none;
+    margin: 0 20px;
+    font-size: 1rem;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
+    color: #a3e2c9;
+}
+
+/* 3. Header Box Div Styling (Positioning Block 2) */
+.header-box {
+    background-color: #2a5c5c;
+    color: #ffffff;
+    text-align: center;
+    padding: 40px 20px;
+    border-bottom: 5px solid #1a3a3a;
+}
+
+.header-box h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-family: 'Georgia', serif; /* Distinct heading font family */
+}
+
+/* 4. Main Content Div Styling (Positioning Block 3) */
+.main-content {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #ffffff; /* White card layout for readability */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Additional styling for images and video layouts */
+.fishing-img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.video-container, .tableau-container {
+    margin: 20px 0;
+    text-align: center;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #e0e0e0;
+    margin: 30px 0;
+}
