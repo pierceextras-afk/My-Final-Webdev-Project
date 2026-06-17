@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extreme Reel-In Simulator</title>
+    <style>
+        /* Embedded CSS for a clean, arcade-like fishing experience */
+        body {
+            background-color: #0e2430;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1c3d4f;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            border: 2px solid #326e8a;
+        }
+
+        h1 {
+            color: #4fc3f7;
+            margin-top: 0;
+        }
+
+        .nav-btn {
+            display: inline-block;
+            background-color: #326e8a;
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .nav-btn:hover {
+            background-color: #4fc3f7;
+            color: #0e2430;
+        }
+
+        /* Game State Displays */
+        .status-box {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 40px;
+            color: #e0e0e0;
+        }
+
+        .action-btn {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.05);
+            background-color: #ffb74d;
+        }
+
+        .action-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Tension Meter Styling */
+        .meter-container {
+            width: 100%;
+            background-color: #11222d;
+            height: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+            position: relative;
+            overflow: hidden;
+            display: none; /* Hidden until hook event */
+            border: 2px solid #555;
+        }
+
+        .sweet-spot {
+            position: absolute;
+            left: 40%;
+            width: 20%;
+            height: 100%;
+            background-color: #4caf50; /* Green winning zone */
+        }
+
+        .indicator {
+            position: absolute;
+            left: 0%;
+            width: 8px;
+            height: 100%;
+            background-color: #ff5252; /* Red tracking bar */
+            box-shadow: 0 0 8px #ff5252;
+            transition: left 0.05s linear;
+        }
+
+        /* Catch Log / Trophy Room */
+        .trophy-room {
+            margin-top: 30px;
+            border-top: 2px dashed #326e8a;
+            padding-top: 20px;
+            text-align: left;
+        }
+
+        .trophy-room h3 {
+            color: #4fc3f7;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .log-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #11222d;
+            padding: 10px;
+            border-radius: 6px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .log-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #1c3d4f;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="scratch.html" class="nav-btn">← Return to Angler's Corner</a>
+
+    <div class="game-container">
+        <h1>🎣 Extreme Reel-In!</h1>
+        <p>Cast your line, wait for the strike, and hit REEL when the meter hits the green zone!</p>
+
+        <div id="status" class="status-box">Ready to fish...</div>
+
+        <div id="meterContainer" class="meter-container">
+            <div class="sweet-spot"></div>
+            <div id="indicator" class="indicator"></div>
+        </div>
+
+        <button id="actionBtn" class="action-btn" onclick="handleButtonClick()">CAST LINE</button>
+
+        <div class="trophy-room">
+            <h3>🏆 Your Tackle Box Journal</h3>
+            <ul id="logList" class="log-list">
+                <li style="color: #777; text-align: center;">No catches recorded yet.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let gameState = "idle"; // States: idle, waiting, biting
+        let position = 0;
+        let direction = 1;
+        let animationInterval = null;
+        let biteTimeout = null;
+
+        const statusText = document.getElementById("status");
+        const actionBtn = document.getElementById("actionBtn");
+        const meterContainer = document.getElementById("meterContainer");
+        const indicator = document.getElementById("indicator");
+        const logList = document.getElementById("logList");
+
+        // Pool of fish data to randomize outcomes
+        const fishPool = [
+            { name: "Bluegill", minW: 0.5, maxW: 1.5, color: "#fff" },
+            { name: "Rainbow Trout", minW: 2.0, maxW: 8.0, color: "#81c784" },
+            { name: "Largemouth Bass", minW: 3.0, maxW: 12.0, color: "#4fc3f7" },
+            { name: "Channel Catfish", minW: 5.0, maxW: 25.0, color: "#b0bec5" },
+            { name: "Legendary Neon Salmon", minW: 40.0, maxW: 65.0, color: "#ffeb3b" }
+        ];
+
+        function handleButtonClick() {
+            if (gameState === "idle") {
+                startCasting();
+            } else if (gameState === "biting") {
+                evaluateCatch();
+            }
+        }
+
+        function startCasting() {
+            gameState = "waiting";
+            statusText.textContent = "Line casted... Waiting for a bite... 🌊";
+            statusText.style.color = "#e0e0e0";
+            actionBtn.textContent = "WAITING...";
+            actionBtn.disabled = true;
+
+            // Trigger a fish bite at a random delay between 2 to 5 seconds
+            const randomDelay = Math.floor(Math.random() * 3000) + 2000;
+            biteTimeout = setTimeout(triggerBite, randomDelay);
+        }
+
+        function triggerBite() {
+            gameState = "biting";
+            statusText.textContent = "💥 A BITE! REEL IT IN NOW!!";
+            statusText.style.color = "#ff5252";
+            actionBtn.textContent = "REEL IN!";
+            actionBtn.disabled = false;
+            actionBtn.style.backgroundColor = "#e53935";
+
+            // Initialize and show tension indicator loop
+            meterContainer.style.display = "block";
+            position = 0;
+            direction = 4; // Movement speed per frame
+            
+            animationInterval = setInterval(() => {
+                position += direction;
+                if (position >= 98 || position <= 0) {
+                    direction *= -1; // Reverse path at boundaries
+                }
+                indicator.style.left = position + "%";
+            }, 20);
+
+            // If player doesn't click within 2.5 seconds, the fish gets away
+            biteTimeout = setTimeout(() => {
+                if (gameState === "biting") {
+                    loseFish("The fish threw the hook! Too slow!");
+                }
+            }, 2500);
+        }
+
+        function evaluateCatch() {
+            // Clear standard timeouts and animations
+            clearInterval(animationInterval);
+            clearTimeout(biteTimeout);
+            
+            // Sweet spot range matching .sweet-spot class (40% to 60%)
+            if (position >= 40 && position <= 60) {
+                successfulCatch();
+            } else {
+                loseFish("Snap! The line broke or slipped!");
+            }
+        }
+
+        function successfulCatch() {
+            // Select a random fish and calculate randomized weight
+            const fishType = fishPool[Math.floor(Math.random() * fishPool.length)];
+            const weight = (Math.random() * (fishType.maxW - fishType.minW) + fishType.minW).toFixed(2);
+            
+            statusText.textContent = `🎉 Caught a ${fishType.name} (${weight} lbs)!`;
+            statusText.style.color = "#4caf50";
+            
+            // Append catch to our tackle box journal
+            if (logList.innerHTML.includes("No catches recorded yet")) {
+                logList.innerHTML = ""; // Clear placeholder
+            }
+            
+            const newLog = document.createElement("li");
+            newLog.innerHTML = `🐟 Caught <span style="color: ${fishType.color}; font-weight:bold;">${fishType.name}</span> - ${weight} lbs`;
+            logList.insertBefore(newLog, logList.firstChild);
+
+            resetGame();
+        }
+
+        function loseFish(reason) {
+            clearInterval(animationInterval);
+            clearTimeout(biteTimeout);
+            statusText.textContent = `❌ ${reason}`;
+            statusText.style.color = "#ff5252";
+            resetGame();
+        }
+
+        function resetGame() {
+            gameState = "idle";
+            actionBtn.textContent = "CAST LINE";
+            actionBtn.style.backgroundColor = "#ff9800";
+            actionBtn.disabled = false;
+            meterContainer.style.display = "none";
+        }
+    </script>
+</body>
+</html>
