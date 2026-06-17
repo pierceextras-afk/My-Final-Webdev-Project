@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extreme Reel-In Simulator</title>
     <style>
-        /* Embedded CSS for a clean, arcade-like fishing experience */
         body {
             background-color: #0e2430;
             color: #ffffff;
@@ -46,7 +45,6 @@
             color: #0e2430;
         }
 
-        /* Game State Displays */
         .status-box {
             font-size: 1.3rem;
             font-weight: bold;
@@ -79,7 +77,6 @@
             transform: none;
         }
 
-        /* Tension Meter Styling */
         .meter-container {
             width: 100%;
             background-color: #11222d;
@@ -88,7 +85,7 @@
             margin: 25px 0;
             position: relative;
             overflow: hidden;
-            display: none; /* Hidden until hook event */
+            display: none;
             border: 2px solid #555;
         }
 
@@ -97,7 +94,7 @@
             left: 40%;
             width: 20%;
             height: 100%;
-            background-color: #4caf50; /* Green winning zone */
+            background-color: #4caf50;
         }
 
         .indicator {
@@ -105,12 +102,11 @@
             left: 0%;
             width: 8px;
             height: 100%;
-            background-color: #ff5252; /* Red tracking bar */
+            background-color: #ff5252;
             box-shadow: 0 0 8px #ff5252;
             transition: left 0.05s linear;
         }
 
-        /* Catch Log / Trophy Room */
         .trophy-room {
             margin-top: 30px;
             border-top: 2px dashed #326e8a;
@@ -167,7 +163,7 @@
     </div>
 
     <script>
-        let gameState = "idle"; // States: idle, waiting, biting
+        let gameState = "idle"; 
         let position = 0;
         let direction = 1;
         let animationInterval = null;
@@ -179,7 +175,6 @@
         const indicator = document.getElementById("indicator");
         const logList = document.getElementById("logList");
 
-        // Pool of fish data to randomize outcomes
         const fishPool = [
             { name: "Bluegill", minW: 0.5, maxW: 1.5, color: "#fff" },
             { name: "Rainbow Trout", minW: 2.0, maxW: 8.0, color: "#81c784" },
@@ -203,7 +198,6 @@
             actionBtn.textContent = "WAITING...";
             actionBtn.disabled = true;
 
-            // Trigger a fish bite at a random delay between 2 to 5 seconds
             const randomDelay = Math.floor(Math.random() * 3000) + 2000;
             biteTimeout = setTimeout(triggerBite, randomDelay);
         }
@@ -216,66 +210,67 @@
             actionBtn.disabled = false;
             actionBtn.style.backgroundColor = "#e53935";
 
-            // Initialize and show tension indicator loop
             meterContainer.style.display = "block";
             position = 0;
-            direction = 4; // Movement speed per frame
+            direction = 4; 
             
             animationInterval = setInterval(() => {
                 position += direction;
                 if (position >= 98 || position <= 0) {
-                    direction *= -1; // Reverse path at boundaries
+                    direction *= -1; 
                 }
                 indicator.style.left = position + "%";
             }, 20);
 
-            // If player doesn't click within 2.5 seconds, the fish gets away
             biteTimeout = setTimeout(() => {
                 if (gameState === "biting") {
+                    clearInterval(animationInterval);
                     loseFish("The fish threw the hook! Too slow!");
                 }
             }, 2500);
         }
 
         function evaluateCatch() {
-            // Clear standard timeouts and animations
             clearInterval(animationInterval);
             clearTimeout(biteTimeout);
             
-            // Sweet spot range matching .sweet-spot class (40% to 60%)
-            if (position >= 40 && position <= 60) {
-                successfulCatch();
+            // Freeze action button during pause state
+            actionBtn.disabled = true;
+            actionBtn.textContent = "CHECKING TIMING...";
+            actionBtn.style.backgroundColor = "#555";
+
+            // Process accuracy check immediately but delay the reset visually by 3 seconds
+            const isSuccess = (position >= 40 && position <= 60);
+
+            if (isSuccess) {
+                const fishType = fishPool[Math.floor(Math.random() * fishPool.length)];
+                const weight = (Math.random() * (fishType.maxW - fishType.minW) + fishType.minW).toFixed(2);
+                statusText.textContent = `🎯 PERFECT TIMING! Caught a ${fishType.name} (${weight} lbs)!`;
+                statusText.style.color = "#4caf50";
+                
+                if (logList.innerHTML.includes("No catches recorded yet")) {
+                    logList.innerHTML = "";
+                }
+                const newLog = document.createElement("li");
+                newLog.innerHTML = `🐟 Caught <span style="color: ${fishType.color}; font-weight:bold;">${fishType.name}</span> - ${weight} lbs`;
+                logList.insertBefore(newLog, logList.firstChild);
             } else {
-                loseFish("Snap! The line broke or slipped!");
+                statusText.textContent = `❌ MISSED IT! You stopped at ${position}% (Green zone is 40%-60%).`;
+                statusText.style.color = "#ff5252";
             }
-        }
 
-        function successfulCatch() {
-            // Select a random fish and calculate randomized weight
-            const fishType = fishPool[Math.floor(Math.random() * fishPool.length)];
-            const weight = (Math.random() * (fishType.maxW - fishType.minW) + fishType.minW).toFixed(2);
-            
-            statusText.textContent = `🎉 Caught a ${fishType.name} (${weight} lbs)!`;
-            statusText.style.color = "#4caf50";
-            
-            // Append catch to our tackle box journal
-            if (logList.innerHTML.includes("No catches recorded yet")) {
-                logList.innerHTML = ""; // Clear placeholder
-            }
-            
-            const newLog = document.createElement("li");
-            newLog.innerHTML = `🐟 Caught <span style="color: ${fishType.color}; font-weight:bold;">${fishType.name}</span> - ${weight} lbs`;
-            logList.insertBefore(newLog, logList.firstChild);
-
-            resetGame();
+            // Pause for 3000ms (3 seconds) so player can look at the frozen position indicator
+            setTimeout(() => {
+                resetGame();
+            }, 3000);
         }
 
         function loseFish(reason) {
-            clearInterval(animationInterval);
-            clearTimeout(biteTimeout);
             statusText.textContent = `❌ ${reason}`;
             statusText.style.color = "#ff5252";
-            resetGame();
+            setTimeout(() => {
+                resetGame();
+            }, 3000);
         }
 
         function resetGame() {
